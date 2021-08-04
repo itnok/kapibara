@@ -1,0 +1,15 @@
+{
+    "cmake.configureOnOpen": false,
+    "doxdocgen.file.fileTemplate": "\\file {name}",
+    "doxdocgen.file.versionTag": "\\version 0.1",
+    "doxdocgen.file.copyrightTag": "\\copyright Copyright (c) {year}",
+    "doxdocgen.generic.authorTag": "\\author {author} ({email})",
+    "doxdocgen.generic.briefTemplate": "\\brief {text}",
+    "doxdocgen.generic.dateTemplate": "\\date {date}",
+    "doxdocgen.generic.paramTemplate": "\\param {param} ",
+    "doxdocgen.generic.returnTemplate": "\\return {type} ",
+    "doxdocgen.cpp.tparamTemplate": "\\tparam {param} ",
+    "editor.comments.ignoreEmptyLines": false,
+    "editor.tabSize": 4,
+    "python.formatting.provider": "autopep8"
+}
