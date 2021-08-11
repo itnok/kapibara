@@ -1,0 +1,4 @@
+---
+server:
+    addr: "localhost"
+    port: 8088
