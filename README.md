@@ -300,6 +300,27 @@ $ python3 server.py --help
 
 
 ---
+## :test_tube: Testing
+
+In the `test` directory are stored unit test files for `pytest` _(eventually supporting the `pytest-cov` plugin for coverage)_. Unit test files are aiming at providing full 100% coverage for the entire project, but even in this scaffolding the currently cover no more than 75% of the code base. Examples are provided for all API endpoints and for a subset of the functions and methods of the whole package. To run the test suite `pylint` needs to be installed:
+
+```bash
+$ python3 -m pip install pytest pytest-cov
+$ pytest
+```
+
+To run the test suite and also check test coverage:
+
+```bash
+$ pytest --cov=app
+```
+
+`pytest-cov` can generate better reporting in different formats. For more information refer directly to [its official documentation](https://pytest-cov.readthedocs.io/en/latest/).
+
+Thanks to FastiAPI the API is created automagically and it is accessible via web browser. All endpoints can be manually tested directly in the browser after the server is started _(more information in the [chapter dedicated to `uvicorn`](#unicorn-uvicorn))_ visiting `http://localhost:8088/docs`. The OpenAPI specification are also generated automatically and can be downloaded from `http://localhost:8088/openapi.json`. The file can then be used to configure other client applications _(e.g. [Postman](https://www.postman.com/) or [Paw](https://paw.cloud/))_.
+
+
+---
 ## :copyright: License
 
 The software is released under the very liberal [MIT License](LICENSE).
