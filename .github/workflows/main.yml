@@ -1,0 +1,75 @@
+---
+# This is a GitHub Actions Workflow for Build & Release
+
+name: CI
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches:
+      - "master"
+    tags:
+      - "**"
+
+  pull_request:
+    branches:
+      - "master"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: 3.8
+
+jobs:
+  _code_analysis_:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Clone repository"
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+          lfs: true
+
+      - name: "Setup Python ${{ env.PYTHON_VERSION }}"
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 install_requirements.py
+
+      - name: Lint Python package & tests
+        run: |
+          source .venv/bin/activate
+          python3 -m pip install --upgrade pylint
+          pylint app
+          pylint test
+
+      - name: Run tests & create code coverage report
+        run: |
+          source .venv/bin/activate
+          python3 -m pip install --upgrade pytest pytest-cov
+          mkdir -p coverage
+          pytest --exitfirst --verbose --failed-first \
+          --cov=app --cov-report html:coverage/html --cov-report term-missing \
+          | tee coverage/results.txt
+
+      - name: Comment on PR with coverage results
+        uses: coroo/pytest-coverage-commentator@v1.0.2
+        with:
+          pytest-coverage: coverage/results.txt
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: coverage/html
