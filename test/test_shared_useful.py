@@ -5,7 +5,6 @@
 """
 
 from os import getcwd as os_getcwd
-from os import path as os_path
 from app.kapibara.shared import useful
 
 

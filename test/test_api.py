@@ -52,7 +52,7 @@ def test_get_items():
 def test_get_items_validation():
     """[TEST] get_items (422 - Validation error)
     """
-    response = client.get(f"/items/string")
+    response = client.get("/items/string")
     assert response.status_code == 422
 
 
