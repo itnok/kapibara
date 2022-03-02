@@ -40,25 +40,6 @@ class DummyLogger():    # pylint: disable=too-few-public-methods
         self._logger.debug(msg, *args)
 
 
-def fstr_template(template: str) -> str:
-    """Returns a string created using the provided template as if it was an f-string literal
-
-    Example:
-    .. code-block:: python
-        tmplt = "A reusable template to show the value of {some_var}"
-        some_var = "some-content-that-will-be-printed"
-        print(fstr_template(tmplt))
-
-    :param template: A string containing the template to use to format an f-string
-    :type template: str
-
-    :return: The interpolated formatted string
-    :rtype: str
-    """
-    # pylint: disable=eval-used
-    return str(eval(f"f'{template}'"))
-
-
 def find_config_path(fname: str, appname: str = os_path.basename(os_path.splitext(__file__)[0])) -> str:
     """Returns the path to the provided file that is the most relevant for configuring purposes.
 

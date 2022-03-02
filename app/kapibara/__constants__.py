@@ -31,7 +31,7 @@ pkg_setup_cfg = os_path.join(
 config.read(pkg_setup_cfg)
 
 for s in ["metadata"]:
-    if s not in config.sections():
+    if s not in config.sections():  #pragma: no cover
         print(
             f"[ERROR] The '{pkg_setup_cfg}' configuration file does not contain a '{s}' section.")
         sys_exit(EINVAL)

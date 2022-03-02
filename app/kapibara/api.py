@@ -38,10 +38,12 @@ from dotenv import load_dotenv as dotenv_load
 from yaml import load as yml_load
 try:
     from yaml import CLoader as yml_Loader
-except ImportError:
+except ImportError: #pragma: no cover
     from yaml import Loader as yml_Loader
 
 from fastapi import FastAPI
+from fastapi import status
+from fastapi.responses import JSONResponse
 from fastapi.responses import PlainTextResponse
 
 from .__constants__ import __app_name__
@@ -51,12 +53,12 @@ from .shared.useful import find_config_path
 
 
 __all__ = (
-    "Kapibara",
     "asgi",
+    "Kapibara",
 )
 
 
-if sys_version_info < (3, 6, 0):
+if sys_version_info < (3, 6, 0):    #pragma: no cover
     sys_stderr.write(
         "Python 3.6.x or newer is needed to run this script\n")
     sys_exit(ENOTRECOVERABLE)
@@ -94,41 +96,83 @@ _log_console_format = l_ColorFormatter("%(log_color)s[%(levelname)-8s] %(message
 _log_console_handler.setFormatter(_log_console_format)
 log.addHandler(_log_console_handler)
 
-app = FastAPI(title=__app_name__, version=__version__)
+
+#
+# FastAPI static configuration
+#
+__tags_metadata__ = [
+    {
+        "name": "common",
+        "description": "Endpoints of general used common to the whole API.",
+    },
+    {
+        "name": "items",
+        "description": "Operations involving the items.",
+    },
+]
+
+app = FastAPI(title=__app_name__,
+              version=__version__,
+              openapi_tags=__tags_metadata__)
 
 
+#pragma CLASS: Kapibara
 class Kapibara:
-    """Class to manage the Kapibara configuration.
+    """[SINGLETON] Class to manage the Kapibara configuration.
 
-    The class could be expandend to eventually provided other
-    necessary underpinnings.
+    The class follows the singlteon pattern, but could be expandend
+    to eventually provided other necessary underpinnings.
 
     :param name: Instance name
         defaults to `__app_name__`
     :type name: str, optional
+
     """
     __slots__ = {
         "__conf",
         "__name",
     }
 
+    _instance = None
+
+    def __new__(cls) -> object:
+        """Constructor class method
+
+        This method is the first to be used at the creation of a new instance of a class
+
+        :return: The freshly created instance of Kapibara
+        :rtype: Kapibara
+
+        """
+        if not cls._instance:
+            cls._instance = super(Kapibara, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self, name: Optional[str] = __app_name__):
         """Constructor method
+
         """
-        self.__name = name
-        self.__conf = {
-            "server": {
-                "addr": "localhost",
-                "port": 0,
-            },
-            "debug": False,
-        }
-        self.__conf = self.load_configuration(self.__name)
-        if self.__conf["debug"]:
-            _log_console_handler.setLevel(l_DEBUG)
-            _log_disk_handler.setLevel(l_DEBUG)
-            log.setLevel(l_DEBUG)
-        self.sanitize_configuration()
+        try:
+            len(self.__name)
+        except AttributeError:
+            #
+            #   This makes sure the __init__ method is
+            #   NOT reused on an instance twice!
+            #
+            self.__name = name
+            self.__conf = {
+                "server": {
+                    "addr": "localhost",
+                    "port": 0,
+                },
+                "debug": False,
+            }
+            self.__conf = self.load_configuration(self.__name)
+            if self.__conf["debug"]:    #pragma: no cover
+                _log_console_handler.setLevel(l_DEBUG)
+                _log_disk_handler.setLevel(l_DEBUG)
+                log.setLevel(l_DEBUG)
+            self.sanitize_configuration()
 
     @staticmethod
     def load_environment_variables(cnf: Dict) -> Dict:
@@ -173,7 +217,17 @@ class Kapibara:
         return cnf
 
     @property
-    def is_debug(self) -> bool:
+    def conf(self) -> Dict:
+        """
+        Whole configuration dictionary.
+
+        :getter: Returns the configuration
+        :type: dict
+        """
+        return self.__conf
+
+    @property
+    def is_debug(self) -> bool: #pragma: no cover
         """
         Is in DEBUG mode?.
 
@@ -183,7 +237,7 @@ class Kapibara:
         return self.__conf["debug"]
 
     @property
-    def server_addr(self) -> str:
+    def server_addr(self) -> str:   #pragma: no cover
         """
         Address the API server is bound to.
 
@@ -193,7 +247,7 @@ class Kapibara:
         return self.__conf["server"]["addr"]
 
     @property
-    def server_port(self) -> int:
+    def server_port(self) -> int:   #pragma: no cover
         """
         Port the API server is listening to.
 
@@ -252,7 +306,7 @@ class Kapibara:
             sys_exit(EINVAL)
 
 
-def asgi() -> FastAPI:
+def asgi() -> FastAPI:  #pragma: no cover
     """Configure FastAPI app as needed and returns its instance
 
     This function is used when the FastAPI app needs to be imported
@@ -266,28 +320,45 @@ def asgi() -> FastAPI:
     return app
 
 
-@app.get("/")
+#    __ ___ _ __  _ __  ___ _ _
+#   / _/ _ \ '  \| '  \/ _ \ ' \
+#   \__\___/_|_|_|_|_|_\___/_||_|
+#
+#   #pragma TAG: common API endpoints
+@app.get("/",
+         tags=["common"],
+         response_class=JSONResponse,
+)
 async def get_root():
     """[GET] / (async)
 
     Simple default 'application/json' request
     """
-    return {"Hello": "World", "from": __app_name__}
+    return JSONResponse(status_code=status.HTTP_200_OK,
+                        content={"Hello": "World", "from": __app_name__})
 
 
-@app.get("/items/{item_id}")
-async def get_item(item_id: int, q: Optional[str] = None):
-    """[GET] /items/{item_id} (async)
-
-    Simple 'application/json' request with option param
-    """
-    return {"item_id": item_id, "q": q}
-
-
-@app.get("/plaintext", response_class=PlainTextResponse)
+@app.get("/plaintext",
+         tags=["common"],
+         response_class=PlainTextResponse
+)
 async def get_plaintext():
     """[GET] /plaintext (async)
 
     Simple 'text/plain' request
     """
-    return "nothing more than text..."
+    return PlainTextResponse(status_code=status.HTTP_200_OK,
+                             content="nothing more than text...")
+
+
+@app.get("/items/{item_id}",
+         tags=["items"],
+         response_class=JSONResponse,
+)
+async def get_item(item_id: int, q: Optional[str] = None):
+    """[GET] /items/{item_id} (async)
+
+    Simple 'application/json' request with option param
+    """
+    return JSONResponse(status_code=status.HTTP_200_OK,
+                        content={"item_id": item_id, "q": q})
