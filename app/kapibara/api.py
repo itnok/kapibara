@@ -4,56 +4,78 @@
 
 """
 
-from os import getenv as os_getenv
-from os import getcwd as os_getcwd
-from os import path as os_path
-
-from sys import exit as sys_exit
-from sys import stderr as sys_stderr
-from sys import version_info as sys_version_info
-
-from typing import Dict
-from typing import Optional
-
-from errno import EINVAL
-from errno import ENOTRECOVERABLE
-
-from logging import getLogger as l_getLogger
-from logging import Formatter as l_Formatter
-from logging import FileHandler as l_FileHandler
-from logging import StreamHandler as l_StreamHandler
-from logging import DEBUG as l_DEBUG
-from logging import ERROR as l_ERROR
-from logging import INFO as l_INFO
-
-from colorlog import ColoredFormatter as l_ColorFormatter
-
-from pydantic import BaseModel
-
-from schema import Schema
-from schema import SchemaError
-from schema import And as SchemaAnd
-from schema import Optional as SchemaOpt
-
-from dotenv import load_dotenv as dotenv_load
-
-from yaml import load as yml_load
+from os import (
+    getenv as os_getenv,
+    getcwd as os_getcwd,
+    path as os_path,
+)
+from sys import (
+    exit as sys_exit,
+    stderr as sys_stderr,
+    version_info as sys_version_info,
+)
+from typing import (
+    Dict,
+    Optional,
+)
+from errno import (
+    EINVAL,
+    ENOTRECOVERABLE,
+)
+from logging import (
+    getLogger as l_getLogger,
+    Formatter as l_Formatter,
+    FileHandler as l_FileHandler,
+    StreamHandler as l_StreamHandler,
+    DEBUG as l_DEBUG,
+    ERROR as l_ERROR,
+    INFO as l_INFO,
+)
+from colorlog import (
+    ColoredFormatter as l_ColorFormatter,
+)
+from pydantic import (
+    BaseModel,
+)
+from schema import (
+    Schema,
+    SchemaError,
+    And as SchemaAnd,
+    Optional as SchemaOpt,
+)
+from dotenv import (
+    load_dotenv as dotenv_load,
+)
 try:
-    from yaml import CLoader as yml_Loader
+    from yaml import (
+        load as yml_load,
+        CLoader as yml_Loader,
+    )
 except ImportError: #pragma: no cover
-    from yaml import Loader as yml_Loader
+    from yaml import (
+        load as yml_load,
+        yml_Loader,
+    )
+from fastapi import (
+    FastAPI,
+    status,
+)
+from fastapi.responses import (
+    JSONResponse,
+    PlainTextResponse,
+)
+from starlette.exceptions import (
+    HTTPException as StarletteHTTPException,
+)
 
-from fastapi import FastAPI
-from fastapi import status
-from fastapi.responses import JSONResponse
-from fastapi.responses import PlainTextResponse
-
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from .__constants__ import __app_name__
-from .__constants__ import __description__
-from .__constants__ import __version__
-from .shared.useful import find_config_path
+from .__constants__ import (
+    __app_name__,
+    __description__,
+    __version__,
+)
+from .shared.useful import (
+    find_config_path,
+)
 
 
 __all__ = (
