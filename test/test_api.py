@@ -4,6 +4,7 @@
 
 """
 
+from errno import EINVAL
 from sys import maxsize as sys_maxsize
 from random import seed as rnd_seed
 from random import randint as rnd_randint
@@ -13,6 +14,9 @@ from fastapi.testclient import TestClient
 from app.kapibara.api import app
 from app.kapibara.api import Kapibara
 from app.kapibara.__constants__ import __app_name__
+from app.kapibara.__constants__ import __version__
+
+import pytest
 
 client = TestClient(app)
 
@@ -30,12 +34,22 @@ def test_class_kapibara_singleton():
         assert k.conf["server"]["port"] == random_port_num
         assert new_k.conf["server"]["port"] == random_port_num
 
+def test_class_kapibara_server_port_gt_zero():
+    """[TEST] Class Kapibara correctly check configuration data for the server port
+    """
+    k = Kapibara()
+    k.conf["server"]["port"] = -1
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        k.sanitize_configuration()
+    assert pytest_wrapped_e.type == SystemExit
+    assert pytest_wrapped_e.value.code == EINVAL
+
 def test_get_root():
     """[TEST] get_root
     """
     response = client.get("/")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"Hello": "World", "from": __app_name__}
+    assert response.json() == {"msg": ["Hello World!", __app_name__, __version__]}
 
 
 def test_get_items():

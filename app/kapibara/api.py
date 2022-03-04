@@ -28,6 +28,8 @@ from logging import INFO as l_INFO
 
 from colorlog import ColoredFormatter as l_ColorFormatter
 
+from pydantic import BaseModel
+
 from schema import Schema
 from schema import SchemaError
 from schema import And as SchemaAnd
@@ -45,6 +47,8 @@ from fastapi import FastAPI
 from fastapi import status
 from fastapi.responses import JSONResponse
 from fastapi.responses import PlainTextResponse
+
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .__constants__ import __app_name__
 from .__constants__ import __description__
@@ -114,6 +118,31 @@ __tags_metadata__ = [
 app = FastAPI(title=__app_name__,
               version=__version__,
               openapi_tags=__tags_metadata__)
+
+
+#pragma EXCEPTION: Exceptionbara
+class Exceptionbara(Exception): #pragma: no cover
+    """Class representing the Kapibara custom exception.
+
+    :param name: Exception details
+    :type name: str
+
+    """
+    __slots__ = {
+        "__detail",
+    }
+
+    def __init__(self, detail: str):
+        self.__detail = detail
+        super().__init__(self.__detail)
+
+
+#pragma MODEL: msgbara
+class Msgbara(BaseModel):
+    """Class representing the data model for the generic API response message.
+
+    """
+    msg: str
 
 
 #pragma CLASS: Kapibara
@@ -320,6 +349,22 @@ def asgi() -> FastAPI:  #pragma: no cover
     return app
 
 
+@app.exception_handler(StarletteHTTPException)
+async def kapibara_exception_handler(exception: StarletteHTTPException):
+    """Custom exceptions handler
+
+    This exception handler standardizes the responses so that even _"magic"_
+    performed by FastAPI under the hood obeys and complies with the desired
+    documented format of error responses.
+    Usually error status codes, using default FastAPI HTTPException, are paired
+    with a `detail` field inside a JSON response. We want to keep the JSON response,
+    but use the `msg` field to convey the human-readable state report.
+
+    """
+    return JSONResponse(status_code=exception.status_code,
+                        content={"msg": exception.detail})
+
+
 #    __ ___ _ __  _ __  ___ _ _
 #   / _/ _ \ '  \| '  \/ _ \ ' \
 #   \__\___/_|_|_|_|_|_\___/_||_|
@@ -328,6 +373,17 @@ def asgi() -> FastAPI:  #pragma: no cover
 @app.get("/",
          tags=["common"],
          response_class=JSONResponse,
+         responses={
+            status.HTTP_200_OK: {
+                "model": Msgbara,
+                "description": "OK",
+                "content": {
+                    "application/json": {
+                        "example": {"msg": ["Hello World!", __app_name__, __version__]},
+                    },
+                },
+            },
+         }
 )
 async def get_root():
     """[GET] / (async)
@@ -335,7 +391,7 @@ async def get_root():
     Simple default 'application/json' request
     """
     return JSONResponse(status_code=status.HTTP_200_OK,
-                        content={"Hello": "World", "from": __app_name__})
+                        content={"msg": ["Hello World!", __app_name__, __version__]})
 
 
 @app.get("/plaintext",
