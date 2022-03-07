@@ -2,3 +2,5 @@
 server:
     addr: "localhost"
     port: 8088
+crypt:
+    key: "<put-your-secret-encryption-key-here>"

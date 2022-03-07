@@ -22,6 +22,10 @@ from errno import (
     EINVAL,
     ENOTRECOVERABLE,
 )
+from datetime import (
+    timedelta as t_timedelta,
+    datetime as t_datetime,
+)
 from logging import (
     getLogger as l_getLogger,
     Formatter as l_Formatter,
@@ -30,6 +34,12 @@ from logging import (
     DEBUG as l_DEBUG,
     ERROR as l_ERROR,
     INFO as l_INFO,
+)
+from jose import (
+    jwt,
+)
+from passlib.context import (
+    CryptContext,
 )
 from colorlog import (
     ColoredFormatter as l_ColorFormatter,
@@ -57,12 +67,19 @@ except ImportError: #pragma: no cover
         yml_Loader,
     )
 from fastapi import (
+    Depends,
     FastAPI,
+    HTTPException,
+    Request,
     status,
 )
 from fastapi.responses import (
     JSONResponse,
     PlainTextResponse,
+)
+from fastapi.security import (
+    OAuth2PasswordBearer,
+    OAuth2PasswordRequestFormStrict,
 )
 from starlette.exceptions import (
     HTTPException as StarletteHTTPException,
@@ -81,6 +98,9 @@ from .shared.useful import (
 __all__ = (
     "asgi",
     "Kapibara",
+    "Kauthbara",
+    "Msgbara",
+    "Tokenbara",
 )
 
 
@@ -98,6 +118,9 @@ _CONFIG_SCHEMA_ = Schema(
         "server": {
             "addr": SchemaAnd(str),
             "port": SchemaAnd(int),
+        },
+        "crypt": {
+            "key": SchemaAnd(str),
         },
         SchemaOpt("debug"): SchemaAnd(bool),
     },
@@ -141,6 +164,8 @@ app = FastAPI(title=__app_name__,
               version=__version__,
               openapi_tags=__tags_metadata__)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 #pragma EXCEPTION: Exceptionbara
 class Exceptionbara(Exception): #pragma: no cover
@@ -159,12 +184,132 @@ class Exceptionbara(Exception): #pragma: no cover
         super().__init__(self.__detail)
 
 
+#pragma MODEL: Tokenbara
+class Tokenbara(BaseModel):
+    """Class representing the data model for the authentication Token.
+
+    """
+    access_token: str
+    token_type: str
+
+
 #pragma MODEL: msgbara
 class Msgbara(BaseModel):
     """Class representing the data model for the generic API response message.
 
     """
     msg: str
+
+
+#pragma CLASS: Kauthbara
+class Kauthbara:
+    """Class to manage the Kapibara mocked authentication.
+
+    :param name: Instance name
+        defaults to `__app_name__`
+    :type name: str, optional
+    :param token_expiration_interval: Time in minutes after which
+        an auth token expires _(minutes)_
+        defaults to `30`
+    :type name: int, optional
+
+    """
+    __slots__ = {
+        "__crypt_key",
+        "__token_encode",
+        "__pass",
+        "__pwdctx",
+        "token_expiration",
+        "__user",
+    }
+
+    def __init__(self,
+                 name: Optional[str] = __app_name__,
+                 crypt_key: Optional[str] = "",
+                 token_expiration_interval: Optional[int] = 30,
+                 token_encode_algorithm: Optional[str] = "HS256"):
+        """Constructor method
+
+        """
+        self.__crypt_key = crypt_key
+        self.__token_encode = token_encode_algorithm
+        self.token_expiration = token_expiration_interval
+        self.__pwdctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.__user = name
+        self.__pass = self.get_password_hash(name)
+
+    def authenticate(self, username: str, password: str) -> bool:
+        """Authenticate a user
+
+        Provided `username` and `password` _(plain-text)_, it performs authentication
+
+        :param username: user ID
+        :type username: str
+        :param password: password in plain-text
+        :type password: str
+
+        :return: True/False
+        :rtype: bool
+
+        """
+        if username != self.__user:
+            return False
+        if not self.verify_password(password, self.__pass):
+            return False
+        return True
+
+    def create_access_token(self, data: dict, expires_delta: Optional[t_timedelta] = None) -> str:
+        """Create an access token in JWT format
+
+        :param data: JWT Token payload to encode
+        :type data: dict
+        :param expires_delta: Expiration time
+        :type expires_delta: datetime.timedelta
+
+        :return: Encoded JWT Token ready for consumption
+        :rtype: str
+
+        """
+        to_encode = data.copy()
+        now = t_datetime.utcnow()
+        if expires_delta:
+            expire = now + expires_delta
+        else:   #pragma: no cover
+            expire = now + t_timedelta(minutes=self.token_expiration)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, self.__crypt_key, algorithm=self.__token_encode)
+        return encoded_jwt
+
+    def get_password_hash(self, password: str) -> str:
+        """Calculate password hash
+
+        Given a plain-text password, it returns an hashed one according to
+        the default CryptContext _(Leverages `bcrypt`)_
+
+        :param password: password in plain-text
+        :type password: str
+
+        :return: Hashed password
+        :rtype: str
+
+        """
+        return self.__pwdctx.hash(password)
+
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """Verify user's password
+
+        Credentials are verified using the default CryptContext _(Leverages `bcrypt`)_
+
+        :param plain_password: password in plain-text as entered by the user
+        :type plain_password: str
+        :param hashed_password: password hash according to the deafult CryptContext
+        :type hashed_password: str
+
+        :return: True/False
+        :rtype: bool
+
+        """
+        return self.__pwdctx.verify(plain_password, hashed_password)
 
 
 #pragma CLASS: Kapibara
@@ -216,6 +361,9 @@ class Kapibara:
                     "addr": "localhost",
                     "port": 0,
                 },
+                "crypt": {
+                    "key": "",
+                },
                 "debug": False,
             }
             self.__conf = self.load_configuration(self.__name)
@@ -235,6 +383,9 @@ class Kapibara:
                 "server": {
                     "addr": "localhost",
                     "port": 0,
+                },
+                "crypt": {
+                    "key": "",
                 },
                 "debug": False,
             }
@@ -261,6 +412,9 @@ class Kapibara:
         cnf["server"]["port"] = \
             int(os_getenv("SERVER_PORT",
                           default=cnf["server"]["port"]))
+        cnf["crypt"]["key"] = \
+            os_getenv("CRYPT_KEY",
+                      default=cnf["crypt"]["key"])
         cnf["debug"] = \
             os_getenv("DEBUG",
                       default=str(cnf["debug"])).lower() \
@@ -276,6 +430,16 @@ class Kapibara:
         :type: dict
         """
         return self.__conf
+
+    @property
+    def crypt_key(self) -> str: #pragma: no cover
+        """
+        Cryptographic secret key.
+
+        :getter: Returns the cryptographic secret used for token encryption
+        :type: str
+        """
+        return self.__conf["crypt"]["key"]
 
     @property
     def is_debug(self) -> bool: #pragma: no cover
@@ -318,6 +482,8 @@ class Kapibara:
             server:
                 addr: "localhost"
                 port: 8088
+            crypt:
+                key: "<put-your-secret-encryption-key-here>"
 
         :param fname: configuration file name
         :type fname: str
@@ -368,11 +534,12 @@ def asgi() -> FastAPI:  #pragma: no cover
     """
     dotenv_load(os_path.join(find_config_path(f".env-{__app_name__}"), f".env-{__app_name__}"))
     app.kapi = Kapibara()
+    app.kauth = Kauthbara(crypt_key=app.kapi.crypt_key)
     return app
 
 
 @app.exception_handler(StarletteHTTPException)
-async def kapibara_exception_handler(exception: StarletteHTTPException):
+async def kapibara_exception_handler(request: Request, exception: StarletteHTTPException):
     """Custom exceptions handler
 
     This exception handler standardizes the responses so that even _"magic"_
@@ -383,6 +550,7 @@ async def kapibara_exception_handler(exception: StarletteHTTPException):
     but use the `msg` field to convey the human-readable state report.
 
     """
+    # pylint: disable=unused-argument
     return JSONResponse(status_code=exception.status_code,
                         content={"msg": exception.detail})
 
@@ -429,14 +597,90 @@ async def get_plaintext():
                              content="nothing more than text...")
 
 
+@app.post("/token",
+          tags=["common"],
+          response_model=Tokenbara,
+          responses={
+            status.HTTP_200_OK: {
+                "model": Tokenbara,
+                "description": "Bearer token",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "access_token": "<some-long-gibberish-that-is-the-actual-token>",
+                            "token_type": "bearer"
+                        },
+                    },
+                },
+            },
+            status.HTTP_401_UNAUTHORIZED: {
+                "model": Msgbara,
+                "description": "Unauthorized",
+                "content": {
+                    "application/json": {
+                        "example": {"msg": "Incorrect username or password"},
+                    },
+                },
+            },
+          },
+)
+async def post_token(request: Request, form_data: OAuth2PasswordRequestFormStrict = Depends()):
+    """[POST] /token (async)
+
+    Mocked access token endpoint
+
+    """
+    is_valid_user = request.app.kauth.authenticate(form_data.username, form_data.password)
+    if not is_valid_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = t_timedelta(minutes=request.app.kauth.token_expiration)
+    access_token = request.app.kauth.create_access_token(
+        data={"app": __app_name__}, expires_delta=access_token_expires
+    )
+    return JSONResponse(status_code=status.HTTP_200_OK,
+                        content={"access_token": access_token, "token_type": "bearer"})
+
+
+#    _ _
+#   (_) |_ ___ _ __  ___
+#   | |  _/ -_) '  \(_-<
+#   |_|\__\___|_|_|_/__/
+#
+#   #pragma TAG: items API endpoints
 @app.get("/items/{item_id}",
          tags=["items"],
          response_class=JSONResponse,
+         responses={
+            status.HTTP_401_UNAUTHORIZED: {
+                "model": Msgbara,
+                "description": "Unauthorized",
+                "content": {
+                    "application/json": {
+                        "example": {"msg": "Not Authenticated"},
+                    },
+                },
+            },
+            status.HTTP_403_FORBIDDEN: {
+                "model": Msgbara,
+                "description": "Forbidden",
+                "content": {
+                    "application/json": {
+                        "example": {"msg": "Forbidden"},
+                    },
+                },
+            },
+         }
 )
-async def get_item(item_id: int, q: Optional[str] = None):
+async def get_item(item_id: int, q: Optional[str] = None,
+                   token: str = Depends(oauth2_scheme)):
     """[GET] /items/{item_id} (async)
 
-    Simple 'application/json' request with option param
+    Simple OAuth protected 'application/json' request with option param
     """
+    # pylint: disable=unused-argument
     return JSONResponse(status_code=status.HTTP_200_OK,
                         content={"item_id": item_id, "q": q})

@@ -85,6 +85,8 @@ After launching the `kapibara` server, the documentation of all endpoint is auto
 server:
     addr: "<address-to-bind-kapibara-server>"
     port: <tcp-port-to-listen-to>
+crypt:
+    key: "<put-your-secret-encryption-key-here>"
 
 ```
 
@@ -120,7 +122,8 @@ An example of a configuration:
 server:
     addr: "0.0.0.0"
     port: 8088
-
+crypt:
+    key: "Thi$-i5-5up3r$ecr37!!!"
 ```
 
 Values in `kapibara.yml` can be overwritten [providing equivalent Environment variables as explained in the following paragraph](#1-b-configuration-via-environment-variables).
@@ -161,6 +164,7 @@ The full list of configurable Environment variable is therefore as follows:
 ```bash
 SERVER_ADDR=""
 SERVER_PORT=
+CRYPT_KEY=""
 
 ```
 
@@ -169,6 +173,7 @@ An example configuration, similar to the one presented in the previous section, 
 ```bash
 SERVER_ADDR="0.0.0.0"
 SERVER_PORT=8088
+CRYPT_KEY="Thi$-i5-5up3r$ecr37!!!"
 
 ```
 
@@ -309,7 +314,7 @@ $ python3 -m pip install pytest pytest-cov
 $ pytest
 ```
 
-To run the test suite and also check test coverage:
+Each run will also automatically perform coverage tests, equivalent to running:
 
 ```bash
 $ pytest --cov=app
@@ -317,7 +322,13 @@ $ pytest --cov=app
 
 `pytest-cov` can generate better reporting in different formats. For more information refer directly to [its official documentation](https://pytest-cov.readthedocs.io/en/latest/).
 
-Thanks to FastiAPI the API is created automagically and it is accessible via web browser. All endpoints can be manually tested directly in the browser after the server is started _(more information in the [chapter dedicated to `uvicorn`](#unicorn-uvicorn))_ visiting `http://localhost:8088/docs`. The OpenAPI specification are also generated automatically and can be downloaded from `http://localhost:8088/openapi.json`. The file can then be used to configure other client applications _(e.g. [Postman](https://www.postman.com/) or [Paw](https://paw.cloud/))_.
+Thanks to FastAPI the API is created automagically and it is accessible via web browser. All endpoints can be manually tested directly in the browser after the server is started _(more information in the [chapter dedicated to `uvicorn`](#unicorn-uvicorn))_ visiting `http://localhost:8088/docs`. The OpenAPI specification are also generated automatically and can be downloaded from `http://localhost:8088/openapi.json`. The file can then be used to configure other client applications _(e.g. [Postman](https://www.postman.com/) or [Paw](https://paw.cloud/))_.
+
+
+---
+## :lock: Authentication
+
+The base scaffolding comes with a bare bones implementation of OAuth2.0 security using the `password` grant type to produce a Bearer Token used for one of the example endpoints. This is for the sake of simplicity and is present in the scaffolding for demonstration purpose only. [The `password` grant type is considered deprecated and disallowed by best current practice](https://oauth.net/2/grant-types/password/). Please make sure, in your final implementation of the API to implement a better strategy or leverage an external OAuth2.0 provider.
 
 
 ---
