@@ -11,13 +11,13 @@ from random import randint as rnd_randint
 from fastapi import status
 from fastapi.testclient import TestClient
 
+import pytest
+
 from app.kapibara.api import app
 from app.kapibara.api import Kapibara
 from app.kapibara.api import Kauthbara
 from app.kapibara.__constants__ import __app_name__
 from app.kapibara.__constants__ import __version__
-
-import pytest
 
 app.kauth = Kauthbara()
 client = TestClient(app)
@@ -44,10 +44,11 @@ def test_class_kapibara_singleton():
     """
     rnd_seed()
     k = Kapibara()
-    for i in range(10):
+    for _ in range(10):
         random_port_num = rnd_randint(1000, 65535)
         k.conf["server"]["port"] = random_port_num
         new_k = Kapibara()
+        # pylint: disable=protected-access
         assert k._instance == new_k._instance
         assert id(k) == id(new_k)
         assert k.conf["server"]["port"] == random_port_num
