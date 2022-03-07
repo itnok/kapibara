@@ -301,13 +301,22 @@ $ python3 server.py --help
 >
 > If `pylint` is installed, it is supposed to return a value of `10/10` for all scripts part of the package!
 >
+> The current configuration for `pylint` in the `.pylintrc` file assumes also `pylint-pydantic` is installed
+> _(to better deal with `pydantic` and its models!)_
+>
+> To install `pylint`:
+>
+> ```bash
+> $ python3 -m pip install pylint pylint-pydantic
+> ```
+>
 > ---
 
 
 ---
 ## :test_tube: Testing
 
-In the `test` directory are stored unit test files for `pytest` _(eventually supporting the `pytest-cov` plugin for coverage)_. Unit test files are aiming at providing full 100% coverage for the entire project, but even in this scaffolding the currently cover no more than 75% of the code base. Examples are provided for all API endpoints and for a subset of the functions and methods of the whole package. To run the test suite `pylint` needs to be installed:
+In the `test` directory are stored unit test files for `pytest` _(eventually supporting the `pytest-cov` plugin for coverage)_. Unit test files are aiming at providing full 100% coverage for the entire project, but even in this scaffolding the currently cover no more than 75% of the code base. Examples are provided for all API endpoints and for a subset of the functions and methods of the whole package. To run the test suite `pytest` needs to be installed:
 
 ```bash
 $ python3 -m pip install pytest pytest-cov
